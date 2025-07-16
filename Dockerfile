@@ -24,7 +24,7 @@ ADD . .
 
 RUN GIT_COMMIT=$(git rev-parse HEAD) && \
     GIT_COMMIT_DATE=$(git log --date=iso8601-strict -1 --pretty=%ct) && \
-    GIT_VERSION=$(git describe --tags --abbrev=0) && \
+    GIT_VERSION=$(git describe --tags --always 2>/dev/null || echo "v0.0.0-$(git rev-parse --short HEAD)") && \
     GIT_TREE_STATE=$(test -n "`git status --porcelain`" && echo "dirty" || echo "clean") && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -extldflags '-static' -X main.Commit=$GIT_COMMIT -X main.CommitDate=$GIT_COMMIT_DATE -X main.Version=$GIT_VERSION -X main.TreeState=$GIT_TREE_STATE" -installsuffix cgo  -o app ./main.go
 
@@ -33,8 +33,7 @@ FROM alpine as prod
 # Import the user and group files from the builder.
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-RUN \ 
-    mkdir -p /usr/share/zoneinfo/Asia && \
+RUN mkdir -p /usr/share/zoneinfo/Asia && \
     ln -s /etc/localtime /usr/share/zoneinfo/Asia/Shanghai
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 WORKDIR /home
